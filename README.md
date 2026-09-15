@@ -43,6 +43,11 @@ paso 1.
 
 ## Corrida nueva
 
+> Si trabajas con Claude Code, la skill `corrida-priorizacion` (en `.claude/skills/`) tiene
+> el procedimiento completo con las verificaciones previas y las trampas conocidas.
+> `CLAUDE.md` resume las convenciones del datalake.
+
+
 1. **Capas geograficas del pais** (una sola vez por pais):
 
    ```bash
