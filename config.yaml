@@ -1,0 +1,62 @@
+# =============================================================================
+# CONFIGURACION DE LA CORRIDA  <-- ESTE ES EL UNICO ARCHIVO QUE TOCAS POR CORRIDA
+# =============================================================================
+# Aca declaras QUE bases vas a leer y DONDE se guardan los resultados.
+# Copia este archivo para cada pais / embotellador / mes:
+#   config/argentina_femsa.yaml, config/argentina_arca.yaml, ...
+#
+# Las credenciales de Azure NO van aca: van en el .env (ver .env.example).
+# =============================================================================
+
+run:
+  name: femsa_argentina_20260911   # solo para los logs
+
+# -----------------------------------------------------------------------------
+# PASO 1 - Priority (equivalente a 1_Priority_OnPremise.ipynb)
+# -----------------------------------------------------------------------------
+step1_priority:
+  inputs:
+    datamatch:
+      file_path: Femsa_on_premise_ARG_20260818/dataplor_cleaned/dataplor_cleaned_split_por_bottler/femsa_dataplor_ar_on_premise_slim.csv.csv
+      container_name: prospection-datacleaning
+    dataplor:
+      file_path: Femsa_on_premise_ARG_20260818/dataplor_cleaned/dataplor_final_pipeline_output_ar_on_premise.csv
+      container_name: prospection-datacleaning
+
+  params:
+    popularity_column: historical_popularity_scores
+    months: 6                              # ventana de meses de popularidad
+    month_weights: [1, 1, 1, 1, 3, 5]      # peso por mes (del mas viejo al mas reciente)
+    score_weights: [0.50, 0.20, 0.30]      # popularidad / number_of_reviews / open_closed_confidence
+    max_reviews: 100                       # tope para number_of_reviews
+    category_bins: [-0.01, 0.4, 0.8, 1.01] # cortes de probability_existence_cat
+    category_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/sl/argentina/femsa/202607/
+    container_name: prospecting-data
+    file_name: 1_priority_femsa_argentina_20260911
+
+# -----------------------------------------------------------------------------
+# PASO 2 - Enriquecimiento geografico (equivalente a 2_Priority_Geo_OnPremise.ipynb)
+# -----------------------------------------------------------------------------
+step2_geo:
+  # Capas del pais: se descargan una vez y las reusa cualquier corrida de Argentina.
+  geodata:
+    prefix: bronze/providers/dataplor/sl/argentina/WorldPop_Overpass/
+    container_name: prospecting-data
+
+  inputs:
+    # priority: si lo dejas vacio, toma automaticamente el output del paso 1.
+    priority:
+    # population_raster / roads / bus_stops: solo para forzar un archivo puntual.
+
+  params:
+    h3_resolution: 8
+    metric_crs: ESRI:102033   # South America Albers Equal Area: distancias en metros
+    tertile_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/sl/argentina/femsa/202607/
+    container_name: prospecting-data
+    file_name: 2_priority_femsa_argentina_20260911

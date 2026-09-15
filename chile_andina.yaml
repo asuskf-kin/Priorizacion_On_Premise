@@ -1,0 +1,60 @@
+# =============================================================================
+# CORRIDA: Chile - Andina - On Premise
+#   uv run python -m pipeline --config chile_andina.yaml
+# =============================================================================
+# Credenciales en .env, nunca aca.
+
+run:
+  name: andina_cl_20260818
+
+# -----------------------------------------------------------------------------
+# PASO 1 - Priority
+# -----------------------------------------------------------------------------
+# Dos bases, como Argentina: Datamatch (el split de Andina) define QUE POIs entran, y
+# Dataplor aporta popularidad, reviews, horarios y confianza. El cruce es por dataplor_id.
+step1_priority:
+  inputs:
+    datamatch:
+      file_path: Andina_chl_ON_premise_CHL_20260817/dataplor_cleaned/dataplor_cleaned_split_por_bottler/dataplor_cl_on_premise_andina.csv
+      container_name: prospection-datacleaning
+    dataplor:
+      file_path: Andina_chl_ON_premise_CHL_20260817/dataplor_cleaned/dataplor_final_pipeline_output_cl_on_premise.csv
+      container_name: prospection-datacleaning
+
+  params:
+    popularity_column: historical_popularity_scores
+    months: 6                              # ventana de meses de popularidad
+    month_weights: [1, 1, 1, 1, 3, 5]      # peso por mes (del mas viejo al mas reciente)
+    score_weights: [0.50, 0.20, 0.30]      # popularidad / number_of_reviews / open_closed_confidence
+    max_reviews: 100                       # tope para number_of_reviews
+    category_bins: [-0.01, 0.4, 0.8, 1.01] # cortes de probability_existence_cat
+    category_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/sl/chile/andina/202608/
+    container_name: prospecting-data
+    file_name: 1_priority_andina_chile_20260818
+
+# -----------------------------------------------------------------------------
+# PASO 2 - Enriquecimiento geografico
+# -----------------------------------------------------------------------------
+step2_geo:
+  # Capas del pais: se descargan una vez con scripts/ensure_geodata.py y las reusa
+  # cualquier corrida de Chile (otro embotellador, otro mes).
+  geodata:
+    prefix: bronze/providers/dataplor/sl/chile/WorldPop_Overpass/
+    container_name: prospecting-data
+
+  inputs:
+    # priority: vacio -> toma automaticamente el output del paso 1.
+    priority:
+
+  params:
+    h3_resolution: 8
+    metric_crs: ESRI:102033   # South America Albers Equal Area: distancias en metros
+    tertile_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/sl/chile/andina/202608/
+    container_name: prospecting-data
+    file_name: 2_priority_andina_chile_20260818

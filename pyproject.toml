@@ -1,0 +1,25 @@
+[project]
+name = "priorizacion-on-premise"
+version = "0.1.0"
+description = "Pipeline de priorizacion de puntos de venta On Premise"
+readme = "README.md"
+# geopandas / rasterio / h3 no tienen wheels para 3.14 todavia
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "pyyaml",
+    "python-dotenv",
+    "azure-storage-blob",
+    "chardet",
+    "pyarrow",
+    "openpyxl",
+    "xlsxwriter",
+    "geopandas",
+    "h3",
+    "rasterio",
+]
+
+[tool.uv]
+package = false

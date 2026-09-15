@@ -1,0 +1,61 @@
+# =============================================================================
+# CORRIDA: Peru - todos los embotelladores - On Premise
+#   uv run python -m pipeline --config peru_all.yaml
+# =============================================================================
+# Credenciales en .env, nunca aca.
+
+run:
+  name: all_pe_20260914   # solo para los logs
+
+# -----------------------------------------------------------------------------
+# PASO 1 - Priority
+# -----------------------------------------------------------------------------
+# Peru no tiene una base Datamatch aparte: la salida de Dataplor ya viene filtrada
+# a On Premise y se usa como base unica (el pipeline detecta que ambas fuentes son
+# el mismo archivo, lo lee una sola vez y no hace el cruce).
+step1_priority:
+  inputs:
+    dataplor:
+      file_path: all_pe_075_PER_20260824/dataplor_cleaned/dataplor_final_pipeline_output_pe_on_premise.csv
+      container_name: prospection-datacleaning
+
+  params:
+    popularity_column: historical_popularity_scores
+    months: 6                              # ventana de meses de popularidad
+    month_weights: [1, 1, 1, 1, 3, 5]      # peso por mes (del mas viejo al mas reciente)
+    score_weights: [0.50, 0.20, 0.30]      # popularidad / number_of_reviews / open_closed_confidence
+    max_reviews: 100                       # tope para number_of_reviews
+    category_bins: [-0.01, 0.4, 0.8, 1.01] # cortes de probability_existence_cat
+    category_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/lc/peru/all/202512/
+    container_name: prospecting-data
+    file_name: 1_priority_all_peru_20260914
+
+# -----------------------------------------------------------------------------
+# PASO 2 - Enriquecimiento geografico
+# -----------------------------------------------------------------------------
+step2_geo:
+  # Las capas (vias, paradas, poblacion) son del PAIS, no de la corrida: se descargan
+  # una sola vez con scripts/ensure_geodata.py y las reusa cualquier corrida de Peru
+  # (otro embotellador, otro mes). El pipeline las descubre solo bajo este prefijo.
+  geodata:
+    prefix: bronze/providers/dataplor/lc/peru/WorldPop_Overpass/
+    container_name: prospecting-data
+
+  inputs:
+    # priority: vacio -> toma automaticamente el output del paso 1.
+    priority:
+    # population_raster / roads / bus_stops: solo si queres forzar un archivo puntual
+    # en vez del que encuentre bajo geodata.prefix.
+
+  params:
+    h3_resolution: 8
+    metric_crs: ESRI:102033   # South America Albers Equal Area: distancias en metros
+    tertile_labels: [low, moderate, high]
+
+  output:
+    file_path: bronze/providers/dataplor/lc/peru/all/202512/
+    container_name: prospecting-data
+    file_name: 2_priority_all_peru_20260914

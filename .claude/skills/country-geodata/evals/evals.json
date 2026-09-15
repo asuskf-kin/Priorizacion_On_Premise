@@ -1,0 +1,80 @@
+{
+  "skill_name": "country-geodata",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Descargame las carreteras principales, las paradas de buses y el WorldPop de 100m del año actual para Uruguay",
+      "expected_output": "Carpeta Uruguay/ con el GeoJSON de vias (LineString, EPSG:4326), el GeoJSON de paradas (Point), el GeoTIFF de WorldPop del año en curso, README.md y _descarga_metadata.json",
+      "files": [],
+      "assertions": [
+        "Existen exactamente tres archivos de datos: dos .geojson y un .tif",
+        "El GeoJSON de vias tiene >5000 features, todas LineString, y todas las coordenadas caen dentro del bbox del pais",
+        "El GeoJSON de paradas tiene features Point con los campos stop_kind y geometry_source",
+        "El .tif es del año en curso y su tamaño de pixel es 0.000833... grados (100 m)",
+        "El README documenta la fuente usada, las consultas Overpass exactas, los conteos por clase y las licencias OSM/WorldPop",
+        "El resumen al usuario menciona el año de WorldPop y si es proyeccion"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "necesito la red vial troncal de Peru nada mas, sin paradas de bus ni poblacion",
+      "expected_output": "Solo el GeoJSON de carreteras con perfil trunk (sin tertiary); no se descarga el raster ni las paradas",
+      "files": [],
+      "assertions": [
+        "Se uso --roads trunk y --skip bus,pop",
+        "No hay ningun .tif ni GeoJSON de paradas en la carpeta de salida",
+        "Ninguna feature tiene highway=tertiary"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "haz lo mismo para Brasil",
+      "expected_output": "Mismo flujo; la consulta de vias se subdivide en cuadrantes o cae a Geofabrik, y se advierte al usuario del tamaño de los archivos",
+      "files": [],
+      "assertions": [
+        "El log muestra subdivision del bbox (nivel [1] o superior) o el cambio a Geofabrik",
+        "No hay osm_id duplicados entre cuadrantes",
+        "Se advierte al usuario del tamaño del GeoJSON antes o despues de la descarga"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "overpass está caído, bájame igual los datos de Uruguay",
+      "expected_output": "La corrida cae automaticamente a Geofabrik y entrega los mismos archivos, advirtiendo que los atributos son reducidos y que hay menos paradas",
+      "files": [],
+      "assertions": [
+        "El GeoJSON de vias trae source_layer=geofabrik:gis_osm_roads_free_1",
+        "El README dice que la fuente fue el extracto Geofabrik y enlaza su URL",
+        "El resumen al usuario explica que se perdieron etiquetas y que el conteo de paradas es menor por el esquema que cubre el extracto"
+      ]
+    }
+  ],
+  "verified_runs": [
+    {
+      "country": "Uruguay",
+      "date": "2026-09-14",
+      "source": "overpass",
+      "roads": 15695,
+      "bus_stops": 2389,
+      "worldpop": "ury_pop_2026_CN_100m_R2025A_v1.tif (6434x5936 px, 0.00083333333 deg)",
+      "notes": "Una sola consulta por capa, sin subdivision; espejo overpass-api.de"
+    },
+    {
+      "country": "Uruguay",
+      "date": "2026-09-14",
+      "source": "geofabrik",
+      "roads": 15918,
+      "bus_stops": 1917,
+      "notes": "Extracto uruguay-latest-free.shp.zip leido por rangos HTTP (80 MB en el servidor, solo se bajaron las capas de vias y transporte). Mismos osm_id que Overpass en las vias; 472 paradas menos porque el extracto no incluye public_transport=platform/stop_position"
+    },
+    {
+      "country": "Bolivia",
+      "date": "2026-09-14",
+      "source": "overpass",
+      "roads": 51654,
+      "bus_stops": 3050,
+      "worldpop": "bol_pop_2026_CN_100m_R2025A_v1.tif (14628x15873 px, 0.00083333333 deg)",
+      "notes": "Ejecucion manual previa que origino esta skill; el espejo principal dio 504 en la capa de paradas y kumi.systems la resolvio"
+    }
+  ]
+}
